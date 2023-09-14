@@ -1,0 +1,16 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/python
+{
+  "name": "devcontainer-lib-mpy-rp2040-decorder",
+  "image": "mcr.microsoft.com/devcontainers/python:0-3.11-bullseye",
+  "postCreateCommand": "python -m pip install mpremote"
+}
+
+// {
+//   "dockerComposeFile": "docker-compose.yml",
+//   "service": "app",
+//   "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}"
+//   // "image": "mcr.microsoft.com/devcontainers/python:3.11-bullseye",
+//   // "containerEnv": {},
+//   // "runArgs": ["--init"]
+// }
