@@ -8,21 +8,22 @@ import utime
     set_init=rp2.PIO.IN_LOW,
     fifo_join=rp2.PIO.JOIN_RX,
     in_shiftdir=rp2.PIO.SHIFT_RIGHT,
-    autopush=True)
+    autopush=True,
+)
 def decode_dcc_pulse():
     set(pindirs, 0)
     wrap_target()
     set(x, 31)
     wait(0, pin, 0)
-    label('dec_count')
-    jmp(pin, 'write')
-    jmp(x_dec, 'dec_count')
-    label('write')
+    label("dec_count")
+    jmp(pin, "write")
+    jmp(x_dec, "dec_count")
+    label("write")
     in_(x, 8)
     wrap()
 
 
-class Preamble():
+class Preamble:
     def __init__(self):
         self.reset()
 
@@ -43,16 +44,16 @@ class Preamble():
         self.is_got_preamble = False
 
 
-class Captcha():
+class Captcha:
     def __init__(self):
         self.clear()
 
     def __call__(self, pulse):
         if self.count and self.count % 8 == 0:
-            print('separator', pulse, self.packets)
+            # print('separator', pulse, self.packets)
             if pulse == 1:  # packet end bit
-                validation = self.validate()
-                if validation:
+                error = self.detect_error()
+                if not error:
                     return self.packets
                 else:
                     # raise InvalidPacketError  # TODO: create error class
@@ -75,27 +76,36 @@ class Captcha():
         # print(self.packets)
         return True  # TODO: Impl.
 
+    def detect_error(self):
+        # print(bin(self.packets))
+        # print("\n")
+        return False
+        # packet_array = unpack("B" * len(self.packets), self.packets)
+        # xor_packets = reduce(lambda i, j: i ^ j, packet_array[0:-1])
+        # check_packet = packet_array[-1]
+        # return not xor_packets == check_packet
 
-class Receiver():
+
+class Receiver:
     def __init__(self, pin_id, address):
         pin_obj = Pin(pin_id)
         self.sm = rp2.StateMachine(
-                      pin_id,
-                      decode_dcc_pulse,
-                      freq=500000,  # 2us/count
-                      in_base=pin_obj,
-                      jmp_pin=pin_obj,
-                      set_base=pin_obj,
-                      push_thresh=256,  # 32bit(8bit*4, per FIFO)*8 -> 32pulse
-                      )
+            pin_id,
+            decode_dcc_pulse,
+            freq=500000,  # 2us/count
+            in_base=pin_obj,
+            jmp_pin=pin_obj,
+            set_base=pin_obj,
+            push_thresh=256,  # 32bit(8bit*4, per FIFO)*8 -> 32pulse
+        )
         self.on_captcha = False  # if False waiting got valid preamble
         self.preamble = Preamble()
         self.captcha = Captcha()
 
     def iter_event(self):
         while True:
-            counts = self.sm.get().to_bytes(4, 'little')  # 20us 程度
-            count_array = unpack('<BBBB', counts)
+            counts = self.sm.get().to_bytes(4, "little")  # 20us 程度
+            count_array = unpack("<BBBB", counts)
             for count in count_array:
                 yield count
 
@@ -106,7 +116,7 @@ class Receiver():
             if packet is not None:
                 self.on_captcha = False
                 self.captcha.clear()
-                print(packet)
+                print(bin(packet), packet)
                 # TODO: packet to command
         else:
             is_got_preamble = self.preamble(signal_level)

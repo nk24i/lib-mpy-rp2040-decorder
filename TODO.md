@@ -6,6 +6,8 @@
 * [*] mpremoteプリインストール
    * [ ] ライブラリを書き込み
    * [ ] テスト（デモ）main.py書き込み -> function on/off でLチカなど
+* [ ] 仮でローカルにvenv + mpremote作成
+* [ ] container内でデバイスに接続する方法はないか調査
 
 
 ## ライブラリ自身

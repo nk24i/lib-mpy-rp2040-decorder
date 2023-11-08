@@ -3,7 +3,22 @@
 {
   "name": "devcontainer-lib-mpy-rp2040-decorder",
   "image": "mcr.microsoft.com/devcontainers/python:0-3.11-bullseye",
-  "postCreateCommand": "python -m pip install mpremote"
+  "postCreateCommand": "python -m pip install mpremote pytest pytest-mock",
+  "customizations": {
+    "vscode": {
+      "extensions": [			
+        	"ms-python.black-formatter"
+      ],
+      "settings": {
+        "[python]": {
+          "editor.defaultFormatter": "ms-python.black-formatter",
+          "editor.formatOnSave": true
+        },
+        "python.testing.pytestArgs": ["tests", "--capture=tee-sys", "-vv"],
+        "python.testing.pytestEnabled": true
+      }
+    }
+  }
 }
 
 // {

@@ -1,4 +1,4 @@
-from functools import reduce
+# from functools import reduce
 from machine import Pin
 import rp2
 from struct import unpack
@@ -23,15 +23,61 @@ def decode_dcc_pulse():
     wrap()
 
 
+class Preamble:
+    def __init__(self):
+        self.reset()
+
+    def __call__(self, pulse):
+        if pulse == 1:
+            if self.preamble < 14:
+                self.preamble += 1
+        else:
+            if self.preamble < 14:
+                # ERROR
+                self.reset()
+            else:
+                self.is_got_preamble = True
+        return self.is_got_preamble
+
+    def reset(self):
+        self.preamble = 0
+        self.is_got_preamble = False
+
+
 class Captcha:
     def __init__(self):
-        self.packets = b""
+        self.clear()
+
+    def __call__(self, pulse):
+        if self.count and self.count % 8 == 0:
+            # print('separator', pulse, self.packets)
+            if pulse == 1:  # packet end bit
+                error = self.detect_error()
+                if not error:
+                    return self.packets
+                else:
+                    # raise InvalidPacketError  # TODO: create error class
+                    pass
+            else:  # next packet start bit
+                pass  # TODO:ビット列の長さでバリデーション
+        else:
+            if self.packets is None:
+                self.packets = pulse
+            else:
+                self.packets <<= 1  ###
+                self.packets |= pulse
+        self.count += 1
+
+    def clear(self):
+        self.packets = None
+        self.count = 0
 
     def detect_error(self):
-        packet_array = unpack("B" * len(self.packets), self.packets)
-        xor_packets = reduce(lambda i, j: i ^ j, packet_array[0:-1])
-        check_packet = packet_array[-1]
-        return not xor_packets == check_packet
+        return False
+        # packet_array = unpack("B" * len(self.packets), self.packets)
+        # xor_packets = reduce(lambda i, j: i ^ j, packet_array[0:-1])
+        # check_packet = packet_array[-1]
+        # return not xor_packets == check_packet
 
 
 class Receiver:
@@ -46,6 +92,37 @@ class Receiver:
             set_base=pin_obj,
             push_thresh=256,  # 32bit(8bit*4, per FIFO)*8 -> 32pulse
         )
+        self.on_captcha = False  # if False waiting got valid preamble
+        self.preamble = Preamble()
+        self.captcha = Captcha()
+
+    def iter_event(self):
+        while True:
+            counts = self.sm.get().to_bytes(4, "little")  # 20us 程度
+            count_array = unpack("<BBBB", counts)
+            for count in count_array:
+                yield count
+
+    def count_to_captcha(self, count):
+        signal_level = 1 if count > 13 and count < 16 else 0
+        if self.on_captcha:
+            packet = self.captcha(signal_level)
+            if packet is not None:
+                self.on_captcha = False
+                self.captcha.clear()
+                print(bin(packet), packet)
+                # TODO: packet to command
+        else:
+            is_got_preamble = self.preamble(signal_level)
+            if is_got_preamble:
+                self.on_captcha = True
+                self.preamble.reset()
 
     def run(self):
         self.sm.active(1)
+        for count in self.iter_event():
+            self.count_to_captcha(count)
+
+
+receiver = Receiver(0, 3)
+receiver.run()
