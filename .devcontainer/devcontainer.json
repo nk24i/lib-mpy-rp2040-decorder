@@ -3,7 +3,7 @@
 {
   "name": "devcontainer-lib-mpy-rp2040-decorder",
   "image": "mcr.microsoft.com/devcontainers/python:0-3.11-bullseye",
-  "postCreateCommand": "python -m pip install mpremote"
+  "postCreateCommand": "python -m pip install mpremote pytest-mock"
 }
 
 // {
