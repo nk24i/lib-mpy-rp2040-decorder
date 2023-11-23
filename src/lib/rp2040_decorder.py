@@ -101,6 +101,7 @@ class Receiver:
         self.on_captcha = False  # if False waiting valid preamble
         self.preamble = Preamble()
         self.captcha = Captcha()
+        self.attached_controls = {}
 
 
     def iter_event(self):
@@ -127,13 +128,27 @@ class Receiver:
                 self.on_captcha = True
                 self.preamble.reset()
 
+    def attach(self, control_instance):
+        address = control_instance.address  # TODO: エラー処理, AttributesError, int, 既登録済address
+        self.attached_controls[address] = control_instance
+
     def run(self):
         self.sm.active(1)
         for count in self.iter_event():
             self.count_to_captcha(count)
 
 
+class Control():
+    # TODO: interface化
+    def __init__(self, address):
+        self.address = address
+
+    def setF0(self, is_active):
+        print("address: ", self.address, "F0 is", is_active)
+
 
 if __name__ == "__main__":
     receiver = Receiver(0, 3)
+    control_example = Control(3)
+    receiver.attach(control_example)
     receiver.run()
